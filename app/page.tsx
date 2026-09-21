@@ -31,6 +31,53 @@ export default function Home() {
     const ppTone = pp == null || sbp == null ? "neutral" : pp < 0.25 * sbp || pp >= 60 ? "alert" : "ok";
     const shockIndexBand = shockIndex == null ? "Awaiting values" : shockIndex < 0.5 ? "Below reference (<0.50)" : shockIndex <= 0.7 ? "Conventional reference" : shockIndex < 0.9 ? "Above reference (0.71–0.89)" : "High (≥0.90)";
     const shockIndexTone = shockIndex == null ? "neutral" : shockIndex >= 0.9 ? "alert" : shockIndex >= 0.5 && shockIndex <= 0.7 ? "ok" : "caution";
+    const scvo2Band = scvo2 == null ? "Awaiting value" : scvo2 < 70 ? "Low (<70%)" : scvo2 <= 80 ? "Reference band (70–80%)" : "High (>80%): interpret cautiously";
+    const scvo2Tone = scvo2 == null ? "neutral" : scvo2 < 70 ? "alert" : scvo2 <= 80 ? "ok" : "caution";
+    const dco2Band = dco2 == null ? "Needs paired samples" : dco2 < 0 ? "Check samples: negative gap" : dco2 <= 6 ? "Not elevated (≤6 mmHg)" : "High (>6 mmHg)";
+    const dco2Tone = dco2 == null ? "neutral" : dco2 < 0 || dco2 > 6 ? "alert" : "ok";
+
+    let flowPhenotype = {
+      title: "Enter ScvO₂ and paired PCO₂ values",
+      summary: "The combined oxygen-delivery and flow phenotype requires ScvO₂ plus near-simultaneous central venous and arterial blood gases.",
+      think: ["Do not classify an unmeasured variable as normal."],
+      next: ["Enter ScvO₂, central venous PCO₂ and arterial PCO₂ from paired samples."]
+    };
+    if (scvo2 != null && dco2 != null && dco2 < 0) {
+      flowPhenotype = {
+        title: "CO₂ gap is negative — verify data quality",
+        summary: "A negative central venous-to-arterial PCO₂ gap is physiologically unexpected and should not be phenotyped automatically.",
+        think: ["Reversed arterial/venous entries", "Non-simultaneous samples", "Sampling or analyser error"],
+        next: ["Confirm sample identity and timing, then repeat if necessary."]
+      };
+    } else if (scvo2 != null && dco2 != null) {
+      const lowScv = scvo2 < 70;
+      const highScv = scvo2 > 80;
+      const highGap = dco2 > 6;
+      if (lowScv && highGap) flowPhenotype = {
+        title: "Low ScvO₂ + high CO₂ gap",
+        summary: "Combined oxygen delivery–demand mismatch and inadequate effective flow/CO₂ washout pattern.",
+        think: ["Low cardiac output or hypovolaemia", "LV/RV dysfunction", "Anaemia or arterial hypoxaemia", "Excess metabolic demand"],
+        next: ["Assess measured or estimated cardiac output and LVOT VTI.", "Assess fluid responsiveness and fluid tolerance separately.", "Check Hb, SaO₂, temperature, agitation, shivering or seizures."]
+      };
+      else if (!lowScv && highGap) flowPhenotype = {
+        title: `${highScv ? "High" : "ScvO₂ ≥70%"} + high CO₂ gap`,
+        summary: "ScvO₂ is not low, but effective flow or microcirculatory CO₂ washout may remain inadequate.",
+        think: ["Low or maldistributed effective flow", "Microcirculatory heterogeneity or shunting", "Impaired oxygen extraction", "Sedation-related low VO₂ may make ScvO₂ appear reassuring", "Regional ischaemia"],
+        next: ["Reassess cardiac output, echo and LVOT VTI.", "Use a dynamic responsiveness test before fluid.", "Recheck CRT, mottling, temperature, lactate trend and regional ischaemia.", "Do not automatically give fluid or start an inotrope from this pattern alone."]
+      };
+      else if (lowScv && !highGap) flowPhenotype = {
+        title: "Low ScvO₂ + non-elevated CO₂ gap",
+        summary: "Oxygen delivery is insufficient relative to demand, while the CO₂ gap does not show a clear low-flow/washout signal.",
+        think: ["Anaemia", "Arterial hypoxaemia", "Fever, shivering, agitation or seizures", "Increased oxygen consumption", "Flow may be preserved, but this is not proven"],
+        next: ["Check Hb, SaO₂/PaO₂ and metabolic demand.", "Measure or estimate cardiac output if uncertainty persists.", "Treat the identified delivery or demand problem rather than reflexively increasing flow."]
+      };
+      else flowPhenotype = {
+        title: `${highScv ? "High" : "Reference-range"} ScvO₂ + non-elevated CO₂ gap`,
+        summary: highScv ? "The CO₂ gap is not elevated, but ScvO₂ >80% may still reflect impaired extraction or shunting; do not label this automatically normal." : "Generally reassuring for global haemodynamic adequacy when tissue-perfusion endpoints are also improving.",
+        think: highScv ? ["Impaired oxygen extraction", "Microcirculatory shunting", "Low VO₂ from sedation or hypothermia"] : ["Global flow and oxygen balance may be adequate", "Regional ischaemia can still be missed"],
+        next: ["Confirm concordant CRT, urine output, lactate trend, mentation, temperature and organ function.", "Continue serial reassessment rather than relying on one paired sample."]
+      };
+    }
 
     const perfusionFlags = [
       crt != null && crt > 3,
@@ -64,7 +111,7 @@ export default function Home() {
     if (lowFlow) actions.push("Reassess LV/RV function, rhythm, preload, afterload and mechanical causes of low forward flow.");
     if (impairedCount > 0) actions.push("Trend CRT, urine output, lactate and mentation after the chosen intervention.");
     if (!actions.length) actions.push("Complete missing domains and interpret trends within the clinical context.");
-    return { map, pp, shockIndex, bsa, vtiChange, dco2, ppBand, ppTone, shockIndexBand, shockIndexTone, perfusion, responsive, tolerance, phenotype, actions };
+    return { map, pp, shockIndex, bsa, vtiChange, dco2, ppBand, ppTone, shockIndexBand, shockIndexTone, scvo2Band, scvo2Tone, dco2Band, dco2Tone, flowPhenotype, perfusion, responsive, tolerance, phenotype, actions };
   }, [f]);
 
   const input = (key: string, label: string, unit = "") => (
@@ -89,7 +136,14 @@ export default function Home() {
       </section>
 
       <section id="flow"><h2>2. Global flow and intervention response</h2><div className="grid">{input("vtiPre", "Pre-intervention LVOT VTI", "cm")}{select("intervention", "Intervention", ["None", "100 mL mini-fluid challenge over 1 min", "250 mL fluid challenge over 2–3 min", "Other intervention"])}{input("vtiPost", "Post-intervention LVOT VTI", "cm")}{input("scvo2", "ScvO₂", "%")}{input("pco2v", "Central venous PCO₂", "mmHg")}{input("pco2a", "Arterial PCO₂", "mmHg")}</div>
-        <div className="metrics"><Metric name="VTI change" value={`${fmt(r.vtiChange)}${r.vtiChange == null ? "" : "%"}`} /><Metric name="ΔPCO₂" value={fmt(r.dco2)} /></div>
+        <div className="metrics flow-metrics"><Metric name="VTI change" value={`${fmt(r.vtiChange)}${r.vtiChange == null ? "" : "%"}`} reference="Interpret against the chosen intervention" /><Metric name="ScvO₂" value={`${fmt(n(f.scvo2))}${n(f.scvo2) == null ? "" : "%"}`} reference="Reference used: 70–80%" flag={r.scvo2Band} tone={r.scvo2Tone} /><Metric name="Pcv–aCO₂ gap" value={`${fmt(r.dco2)}${r.dco2 == null ? "" : " mmHg"}`} reference="Central venous PCO₂ − arterial PCO₂" flag={r.dco2Band} tone={r.dco2Tone} /></div>
+        <div className="flow-interpretation">
+          <p className="interpretation-label">Combined interpretation</p>
+          <h3>{r.flowPhenotype.title}</h3>
+          <p>{r.flowPhenotype.summary}</p>
+          <div className="interpretation-grid"><div><h4>Think of</h4><ul>{r.flowPhenotype.think.map(item => <li key={item}>{item}</li>)}</ul></div><div><h4>Check next</h4><ul>{r.flowPhenotype.next.map(item => <li key={item}>{item}</li>)}</ul></div></div>
+          <p className="sampling-note">Use near-simultaneous samples from the same arterial and central venous sampling context. The CO₂ gap is a flow-related adjunct, not a direct measurement of cardiac output or proof of anaerobic metabolism.</p>
+        </div>
       </section>
 
       <section id="perfusion"><h2>3. Tissue perfusion and fluid tolerance</h2><div className="grid">{input("crt", "Capillary refill time", "s")}{input("urine", "Urine output", "mL/kg/h")}{input("lactate", "Lactate", "mmol/L")}{select("mentation", "Mentation", ["Unknown", "Normal", "Altered"])}{input("temperature", "Peripheral temperature", "°C")}{select("congestion", "Integrated congestion assessment", ["Unknown", "No congestion", "Congestion present"])}</div></section>

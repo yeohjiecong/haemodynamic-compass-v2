@@ -29,6 +29,16 @@ input:focus,select:focus { outline:2px solid var(--cyan); border-color:transpare
 .metric-flag.alert { background:#42202a; color:#ffafbd; }
 .metric-reference { display:block; margin-top:7px; color:#8096ad; font-size:.67rem; line-height:1.3; }
 .range-note { margin:12px 2px 0; color:#8298af; font-size:.75rem; line-height:1.45; }
+.flow-metrics { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.flow-interpretation { margin-top:16px; padding:18px; border:1px solid #2f6671; border-radius:14px; background:linear-gradient(145deg,#0a202c,#091725); }
+.flow-interpretation h3 { margin:4px 0 8px; color:#effcff; font-size:1.08rem; }
+.flow-interpretation > p { line-height:1.5; }
+.interpretation-label { margin:0; color:var(--cyan); font-size:.72rem; font-weight:850; letter-spacing:.1em; text-transform:uppercase; }
+.interpretation-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.interpretation-grid h4 { margin:8px 0 5px; font-size:.8rem; color:#aac2d8; text-transform:uppercase; letter-spacing:.06em; }
+.interpretation-grid ul { margin:0; padding-left:1.1rem; color:#d7e3f1; }
+.interpretation-grid li { padding:2px 0; font-size:.84rem; line-height:1.4; }
+.sampling-note { margin:14px 0 0; padding-top:12px; border-top:1px solid #244252; color:#8098aa; font-size:.72rem; }
 .status-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
 .status strong { color:#bfe7ff; font-size:.96rem; }
 .result { border-color:#276e79; }
@@ -49,10 +59,13 @@ footer { color:#72869d; text-align:center; margin-top:32px; font-size:.8rem; }
   section { padding:18px 15px; border-radius:15px; margin:12px 0; scroll-margin-top:68px; }
   .grid { grid-template-columns:1fr; gap:13px; }
   .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+  .flow-metrics { grid-template-columns:1fr; }
   .status-grid { grid-template-columns:1fr; gap:9px; }
   .metric,.status { padding:12px; }
   .metric strong { font-size:1.22rem; }
   .phenotype { font-size:1.02rem; line-height:1.5; }
+  .flow-interpretation { padding:15px 13px; }
+  .interpretation-grid { grid-template-columns:1fr; gap:10px; }
   ol { padding-left:1.2rem; }
   .reset { width:100%; }
   footer { margin:25px 10px 0; line-height:1.45; }
